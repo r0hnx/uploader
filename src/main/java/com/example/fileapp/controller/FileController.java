@@ -1,5 +1,8 @@
 package com.example.fileapp.controller;
 
+import com.example.fileapp.dto.DTOMapper;
+import com.example.fileapp.dto.FileDTO;
+import com.example.fileapp.exception.GlobalExceptionHandler;
 import com.example.fileapp.model.FileEntity;
 import com.example.fileapp.service.FileService;
 import org.springframework.http.HttpHeaders;
@@ -11,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -19,27 +22,35 @@ import java.util.UUID;
 public class FileController {
 
     private final FileService fileService;
+    private final DTOMapper dtoMapper;
 
-    public FileController(FileService fileService) {
+    public FileController(FileService fileService, DTOMapper dtoMapper) {
         this.fileService = fileService;
+        this.dtoMapper = dtoMapper;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getFileMetaData(@PathVariable UUID id) {
+        Optional<FileEntity> fileEntity = fileService.getFile(id);
+        if (!fileEntity.isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new GlobalExceptionHandler().handleIllegalArgumentException(new IllegalArgumentException(HttpStatus.BAD_REQUEST.getReasonPhrase())));
+        }
+
+        return ResponseEntity.ok(dtoMapper.convert(fileEntity, FileDTO.class));
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file,
+                                             @RequestParam(required = false) UUID folderId) {
         try {
-            FileEntity savedFile = fileService.saveFile(file);
+            FileDTO savedFile = fileService.saveFile(file, folderId);
             return ResponseEntity.ok(savedFile);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new GlobalExceptionHandler().handleIllegalArgumentException(e));
         } catch (IOException e) {
             System.out.print(e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("File upload failed.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new GlobalExceptionHandler().handleIOException(e));
         }
-    }
-
-    @GetMapping
-    public ResponseEntity<List<FileEntity>> getAllFiles() {
-        return ResponseEntity.ok(fileService.listFiles());
     }
 
     @GetMapping("/download/{id}")
