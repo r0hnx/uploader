@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,7 +37,11 @@ public class FileController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new GlobalExceptionHandler().handleIllegalArgumentException(new IllegalArgumentException(HttpStatus.BAD_REQUEST.getReasonPhrase())));
         }
 
-        return ResponseEntity.ok(dtoMapper.convert(fileEntity, FileDTO.class));
+        if(fileEntity.get().getDeleted()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new GlobalExceptionHandler().handleIllegalArgumentException(new IllegalArgumentException(HttpStatus.NOT_FOUND.getReasonPhrase())));
+        }
+
+        return ResponseEntity.ok(dtoMapper.convert(fileEntity.get(), FileDTO.class));
     }
 
     @PostMapping("/upload")
@@ -54,9 +59,12 @@ public class FileController {
     }
 
     @GetMapping("/download/{id}")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable UUID id) throws IOException {
+    public ResponseEntity<?> downloadFile(@PathVariable UUID id) throws IOException {
         return fileService.getFile(id)
                 .map(fileEntity -> {
+                    if(fileEntity.getDeleted()) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new GlobalExceptionHandler().handleIllegalArgumentException(new IllegalArgumentException(HttpStatus.NOT_FOUND.getReasonPhrase())));
+                    }
                     try {
                         File file = new File(fileEntity.getFilepath());
                         byte[] content = Files.readAllBytes(file.toPath());
@@ -71,4 +79,16 @@ public class FileController {
                 })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteFile(@PathVariable UUID id) {
+        try {
+            fileService.deleteFile(id);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<byte[]>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return ResponseEntity.ok(Map.of("message", "File moved to trash"));
+    }
+
 }
