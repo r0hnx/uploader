@@ -84,6 +84,7 @@ public class FolderController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("path", getFolderPath(folder));
+        response.put("name", folder.getName());
         response.put("folders", folders);
         response.put("files", files);
 
