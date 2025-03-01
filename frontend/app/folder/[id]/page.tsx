@@ -8,6 +8,16 @@ export default function FolderPage({ params }: { params: Promise<{ id: string }>
   const { id } = use(params);
   const { data, error } = useFolderContents(id);
 
+  interface File {
+    id: string;
+    filename: string;
+  }
+
+  interface Folder {
+    id: string;
+    name: string;
+  }
+
   if (error) return <p className="text-red-500 text-center">Oops! Something went wrong.</p>;
   if (!data) {
     return (
@@ -15,14 +25,6 @@ export default function FolderPage({ params }: { params: Promise<{ id: string }>
         <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
       </div>
     );
-  }
-
-  if(data.error) {
-    return (
-      <div className="flex justify-center items-center h-[80vh]">
-        <h1>Error 404 | Not Found</h1>
-      </div>
-    )
   }
 
   const hasFolders = data.folders && data.folders.length > 0;
@@ -43,7 +45,7 @@ export default function FolderPage({ params }: { params: Promise<{ id: string }>
             </Link>
           ))}
 
-          {data.files.map((file: { id: string; filename: string }) => (
+          {data.files.map((file: File) => (
             <div key={file.id} className="p-4 bg-white shadow rounded-lg flex items-center gap-2">
               <FileText className="w-6 h-6" />
               {file.filename}

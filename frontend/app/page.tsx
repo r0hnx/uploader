@@ -1,13 +1,21 @@
 "use client";
-import { useState } from "react";
-import { Folder, FileText, Home, Settings, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Folder, FileText, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useFolders } from "@/lib/api";
 import Link from "next/link";
 
 export default function FileBrowser() {
   const { data, error, isLoading } = useFolders();
+
+  interface File {
+    id: string;
+    filename: string;
+  }
+
+  interface Folder {
+    id: string;
+    name: string;
+  }
 
   return (
     <div className="flex h-screen">
@@ -35,7 +43,7 @@ export default function FileBrowser() {
 
         {/* Files & Folders Grid */}
         <div className="grid grid-cols-3 gap-4">
-          {data?.folders?.map((folder: any) => (
+          {data?.folders?.map((folder: Folder) => (
             <Link key={folder.id} href={`/folder/${folder.id}`}>
               <Card key={folder.id} className="p-4">
                 <CardContent className="flex flex-col items-center">
@@ -46,11 +54,11 @@ export default function FileBrowser() {
             </Link>
           ))}
 
-          {data?.files?.map((file: any) => (
+          {data?.files?.map((file: File) => (
             <Card key={file.id} className="p-4">
               <CardContent className="flex flex-col items-center">
                 <FileText size={40} />
-                <p className="mt-2">{file.name}</p>
+                <p className="mt-2">{file.filename}</p>
               </CardContent>
             </Card>
           ))}
